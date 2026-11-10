@@ -108,7 +108,7 @@ impl<M: Send + 'static, R: ActoRuntime, S: Send + 'static> ActoCell<M, R, S> {
     ///     // spawn, retrieve handle, do not supervise
     ///     let a_ref = cell.spawn("super", |mut cell: ActoCell<_, _, ()>| async move {
     ///         if let ActoInput::Message(msg) = cell.recv().await {
-    ///             cell.supervise(msg);
+    ///             cell.supervise::<_, _, ()>(msg);
     ///         }
     ///     }).me;
     ///     // spawn and let some other actor supervise

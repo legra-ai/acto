@@ -146,7 +146,7 @@ impl AcTokioRuntime {
     /// Returns `None` if the runtime has been dropped.
     pub fn with_rt<U>(&self, f: impl FnOnce(&Handle) -> U) -> Option<U> {
         let _span = tracing::debug_span!("with_rt").entered();
-        self.inner.rt.read().as_ref().map(|rt| f(&*rt))
+        self.inner.rt.read().as_ref().map(|rt| f(rt))
     }
 }
 
@@ -235,7 +235,8 @@ impl<M: Send + 'static> Sender<M> for TokioSender<M> {
     fn send_wait(&self, msg: M) -> Pin<Box<dyn Future<Output = bool> + Send + 'static>> {
         let tx = self.0.clone();
         Box::pin(async move {
-            if let Err(_) = tx.send(msg).await {
+            let sent = tx.send(msg).await;
+            if sent.is_err() {
                 tracing::debug!(
                     msg = type_name::<M>(),
                     "dropping message due to closed mailbox"
@@ -318,7 +319,7 @@ impl PanicInfo for TokioPanic {
         match self {
             TokioPanic::Join(j) => j
                 .downcast_ref::<&'static str>()
-                .map(|s| *s)
+                .copied()
                 .or_else(|| j.downcast_ref::<String>().map(|s| &**s))
                 .unwrap_or("opaque panic")
                 .to_owned(),
